@@ -9,13 +9,9 @@ def filters_spam(options = {})
   }.update(options)
 
   self.module_eval do
-    if Rails.version < '3.0.0'
-      named_scope :ham, :conditions => {:spam => false}
-      named_scope :spam, :conditions => {:spam => true}
-    else
-      scope :ham, :conditions => {:spam => false}
-      scope :spam, :conditions => {:spam => true}
-    end
+    scope :ham, -> { where(:spam => false) }
+    scope :spam, -> { where(:spam => true) }
+
     before_validation(:on => :create) { |spammable| spammable.send(:calculate_spam_score) }
 
     cattr_accessor :spam_words
@@ -61,7 +57,7 @@ def filters_spam(options = {})
     def score_for_previous_submissions
       current_score = 0
 
-      self.class.find(:all, :conditions => {:#{options[:email_field]} => #{options[:email_field]}}).each do |i|
+      self.class.where({:#{options[:email_field]} => #{options[:email_field]}}).each do |i|
         if i.spam?
           current_score -= 1
         else
@@ -107,7 +103,7 @@ def filters_spam(options = {})
     end
 
     def score_for_same_message
-      self.class.count(:conditions => {:#{options[:message_field]} => #{options[:message_field]}}) * -1
+      self.class.where({:#{options[:message_field]} => #{options[:message_field]}}).count() * -1
     end
 
     def score_for_consonant_runs
